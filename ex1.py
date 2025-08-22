@@ -1,11 +1,17 @@
 import streamlit as st
-from openai import OpenAI
 
-client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
+st.title("🩺 증상 기반 건강 도우미")
 
-st.title("🧠 AI 기반 증상 분류 건강 도우미")
-st.write("⚠️ 이 앱은 참고용 조언만 제공합니다. 의학적 진단은 병원에서 받으세요.")
+# 키워드 매핑 (사용자가 입력할 수 있는 다양한 표현들)
+symptom_keywords = {
+    "두통": ["두통", "머리 아파", "편두통", "머리가 욱신", "머리가 무겁다"],
+    "복통": ["복통", "배 아파", "속이 쓰려", "위가 아파", "장에 통증"],
+    "기침": ["기침", "콜록", "목이 아프다", "가래"],
+    "발열": ["열", "고열", "체온", "열이 난다"],
+    "어지럼증": ["어지럽다", "빙글빙글", "현기증"]
+}
 
+# 증상-질환 매핑
 symptom_disease_map = {
     "두통": {
         "possible_diseases": ["긴장성 두통", "편두통", "감기"],
@@ -28,32 +34,23 @@ symptom_disease_map = {
         "advice": "💡 충분한 휴식을 취하세요. 반복되면 진료를 권유합니다."
     }
 }
-
 user_input = st.text_input("현재 증상을 구체적으로 입력하세요:")
 
-if st.button("AI에게 물어보기") and user_input.strip() != "":
-    categories = list(symptom_disease_map.keys())
-    prompt = f"""
-    사용자가 증상을 설명하면 아래 카테고리 중 가장 적절한 것을 골라줘:
-    카테고리: {categories}
-    사용자 입력: "{user_input}"
-    출력은 반드시 하나의 카테고리만 답해.
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0
-    )
-
-    matched_symptom = response.choices[0].message.content.strip()
-
-    if matched_symptom in symptom_disease_map:
+if st.button("확인하기"):
+    matched_symptom = None
+    
+    for main_symptom, keywords in symptom_keywords.items():
+        for word in keywords:
+            if word in user_input:
+                matched_symptom = main_symptom
+                break
+    
+    if matched_symptom:
         info = symptom_disease_map[matched_symptom]
-        st.subheader(f"🩺 AI가 분류한 증상: {matched_symptom}")
+        st.subheader(f"🩺 입력 증상 분류: {matched_symptom}")
         st.write("🔎 의심되는 질환:")
         for d in info["possible_diseases"]:
             st.write(f"- {d}")
         st.info(info["advice"])
     else:
-        st.error("AI가 적절한 증상을 찾지 못했습니다. 다시 입력해보세요.")
+        st.write("❓ 해당 증상은 데이터에 없습니다. 가까운 병원을 방문하세요.")
